@@ -15,6 +15,19 @@ impl Contract {
         if my_token_id >= 2000 {
             return;
         }
+        let caller = env::predecessor_account_id();
+        let curr_time = env::block_timestamp() / 1_000_000;
+        const PRESALE_TIME: u64 = 1655136000000; // 13th June 2022 04:00PM UTC
+        const PUBSALE_TIME: u64 = 1655139600000; // 13th June 2022 05:00PM UTC
+        if curr_time < PRESALE_TIME {
+            return;
+        } else if curr_time > PRESALE_TIME && curr_time < PUBSALE_TIME {
+            let is_whitelist = self.whitelist.get(&caller).unwrap();
+            if !is_whitelist {
+                return;
+            }
+        }
+
         let mut final_token_id = format!("{}", my_token_id);
         if let Some(token_id) = token_id {
             final_token_id = token_id
