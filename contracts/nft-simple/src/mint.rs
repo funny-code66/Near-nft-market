@@ -19,6 +19,7 @@ impl Contract {
         let curr_time = env::block_timestamp() / 1_000_000;
         const PRESALE_TIME: u64 = 1655136000000; // 13th June 2022 04:00PM UTC
         const PUBSALE_TIME: u64 = 1655139600000; // 13th June 2022 05:00PM UTC
+
         if curr_time < PRESALE_TIME {
             return;
         } else if curr_time > PRESALE_TIME && curr_time < PUBSALE_TIME {
@@ -106,11 +107,13 @@ impl Contract {
     }
 
     pub fn add_whitelist(&mut self) {
+        self.assert_owner();
         let caller = env::predecessor_account_id();
         self.whitelist.insert(&caller, &(true));
     }
 
     pub fn remove_whitelist(&mut self) {
+        self.assert_owner();
         let caller = env::predecessor_account_id();
         self.whitelist.insert(&caller, &(false));
     }
