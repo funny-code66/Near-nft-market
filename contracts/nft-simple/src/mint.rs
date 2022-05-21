@@ -11,7 +11,11 @@ impl Contract {
         receiver_id: Option<ValidAccountId>,
         token_type: Option<TokenType>,
     ) {
-        let mut final_token_id = format!("{}", self.token_metadata_by_id.len() + 1);
+        let my_token_id = self.token_metadata_by_id.len() + 1;
+        if my_token_id >= 2000 {
+            return;
+        }
+        let mut final_token_id = format!("{}", my_token_id);
         if let Some(token_id) = token_id {
             final_token_id = token_id
         }
