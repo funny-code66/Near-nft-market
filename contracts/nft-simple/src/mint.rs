@@ -11,7 +11,6 @@ impl Contract {
         receiver_id: Option<ValidAccountId>,
         token_type: Option<TokenType>,
     ) {
-
         let mut final_token_id = format!("{}", self.token_metadata_by_id.len() + 1);
         if let Some(token_id) = token_id {
             final_token_id = token_id
@@ -28,33 +27,41 @@ impl Contract {
         let mut total_perpetual = 0;
         // user added perpetual_royalties (percentage paid with every transfer)
         if let Some(perpetual_royalties) = perpetual_royalties {
-            assert!(perpetual_royalties.len() < 7, "Cannot add more than 6 perpetual royalty amounts");
+            assert!(
+                perpetual_royalties.len() < 7,
+                "Cannot add more than 6 perpetual royalty amounts"
+            );
             for (account, amount) in perpetual_royalties {
                 royalty.insert(account, amount);
                 total_perpetual += amount;
             }
         }
         // royalty limit for minter capped at 20%
-        assert!(total_perpetual <= MINTER_ROYALTY_CAP, "Perpetual royalties cannot be more than 20%");
+        assert!(
+            total_perpetual <= MINTER_ROYALTY_CAP,
+            "Perpetual royalties cannot be more than 20%"
+        );
 
-        // CUSTOM - enforce minting caps by token_type 
+        // CUSTOM - enforce minting caps by token_type
         if token_type.is_some() {
             let token_type = token_type.clone().unwrap();
-            let cap = u64::from(*self.supply_cap_by_type.get(&token_type).expect("Token type must have supply cap."));
+            let cap = u64::from(
+                *self
+                    .supply_cap_by_type
+                    .get(&token_type)
+                    .expect("Token type must have supply cap."),
+            );
             let supply = u64::from(self.nft_supply_for_type(&token_type));
             assert!(supply < cap, "Cannot mint anymore of token type.");
-            let mut tokens_per_type = self
-                .tokens_per_type
-                .get(&token_type)
-                .unwrap_or_else(|| {
-                    UnorderedSet::new(
-                        StorageKey::TokensPerTypeInner {
-                            token_type_hash: hash_account_id(&token_type),
-                        }
-                        .try_to_vec()
-                        .unwrap(),
-                    )
-                });
+            let mut tokens_per_type = self.tokens_per_type.get(&token_type).unwrap_or_else(|| {
+                UnorderedSet::new(
+                    StorageKey::TokensPerTypeInner {
+                        token_type_hash: hash_account_id(&token_type),
+                    }
+                    .try_to_vec()
+                    .unwrap(),
+                )
+            });
             tokens_per_type.insert(&final_token_id);
             self.tokens_per_type.insert(&token_type, &tokens_per_type);
         }
@@ -79,5 +86,15 @@ impl Contract {
             self.extra_storage_in_bytes_per_token + new_token_size_in_bytes;
 
         refund_deposit(required_storage_in_bytes);
+    }
+
+    pub fn add_whitelist(&mut self) {
+        let caller = env::predecessor_account_id();
+        self.whitelist.insert(&caller, &(true));
+    }
+
+    pub fn remove_whitelist(&mut self) {
+        let caller = env::predecessor_account_id();
+        self.whitelist.insert(&caller, &(false));
     }
 }

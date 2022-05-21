@@ -1,27 +1,27 @@
-use std::collections::HashMap;
 use std::cmp::min;
+use std::collections::HashMap;
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::json_types::{Base64VecU8, ValidAccountId, U64, U128};
+use near_sdk::json_types::{Base64VecU8, ValidAccountId, U128, U64};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     env, near_bindgen, AccountId, Balance, CryptoHash, PanicOnDefault, Promise, StorageUsage,
 };
 
+pub use crate::enumerable::*;
 use crate::internal::*;
 pub use crate::metadata::*;
 pub use crate::mint::*;
 pub use crate::nft_core::*;
 pub use crate::token::*;
-pub use crate::enumerable::*;
 
+mod enumerable;
 mod internal;
 mod metadata;
 mod mint;
 mod nft_core;
 mod token;
-mod enumerable;
 
 // CUSTOM types
 pub type TokenType = String;
@@ -52,6 +52,8 @@ pub struct Contract {
     pub tokens_per_type: LookupMap<TokenType, UnorderedSet<TokenId>>,
     pub token_types_locked: UnorderedSet<TokenType>,
     pub contract_royalty: u32,
+
+    pub whitelist: LookupMap<AccountId, bool>,
 }
 
 /// Helper structure to for keys of the persistent collections.
@@ -65,12 +67,18 @@ pub enum StorageKey {
     TokensPerType,
     TokensPerTypeInner { token_type_hash: CryptoHash },
     TokenTypesLocked,
+    Whiltelist,
 }
 
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new(owner_id: ValidAccountId, metadata: NFTMetadata, supply_cap_by_type: TypeSupplyCaps, locked: Option<bool>) -> Self {
+    pub fn new(
+        owner_id: ValidAccountId,
+        metadata: NFTMetadata,
+        supply_cap_by_type: TypeSupplyCaps,
+        locked: Option<bool>,
+    ) -> Self {
         let mut this = Self {
             tokens_per_owner: LookupMap::new(StorageKey::TokensPerOwner.try_to_vec().unwrap()),
             tokens_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
@@ -85,8 +93,11 @@ impl Contract {
             ),
             supply_cap_by_type,
             tokens_per_type: LookupMap::new(StorageKey::TokensPerType.try_to_vec().unwrap()),
-            token_types_locked: UnorderedSet::new(StorageKey::TokenTypesLocked.try_to_vec().unwrap()),
+            token_types_locked: UnorderedSet::new(
+                StorageKey::TokenTypesLocked.try_to_vec().unwrap(),
+            ),
             contract_royalty: 0,
+            whitelist: LookupMap::new(StorageKey::Whiltelist.try_to_vec().unwrap()),
         };
 
         if locked.unwrap_or(false) {
@@ -126,7 +137,10 @@ impl Contract {
 
     pub fn set_contract_royalty(&mut self, contract_royalty: u32) {
         self.assert_owner();
-        assert!(contract_royalty <= CONTRACT_ROYALTY_CAP, "Contract royalties limited to 10% for owner");
+        assert!(
+            contract_royalty <= CONTRACT_ROYALTY_CAP,
+            "Contract royalties limited to 10% for owner"
+        );
         self.contract_royalty = contract_royalty;
     }
 
@@ -134,9 +148,17 @@ impl Contract {
         self.assert_owner();
         for (token_type, hard_cap) in &supply_cap_by_type {
             if locked.unwrap_or(false) {
-                assert!(self.token_types_locked.insert(&token_type), "Token type should not be locked");
+                assert!(
+                    self.token_types_locked.insert(&token_type),
+                    "Token type should not be locked"
+                );
             }
-            assert!(self.supply_cap_by_type.insert(token_type.to_string(), *hard_cap).is_none(), "Token type exists");
+            assert!(
+                self.supply_cap_by_type
+                    .insert(token_type.to_string(), *hard_cap)
+                    .is_none(),
+                "Token type exists"
+            );
         }
     }
 
