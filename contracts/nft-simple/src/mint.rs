@@ -30,7 +30,7 @@ impl Contract {
 
         let mut final_token_id = format!("{}", my_token_id);
         if let Some(token_id) = token_id {
-            final_token_id = token_id
+            final_token_id = token_id;
         }
 
         let initial_storage_usage = env::storage_usage();
@@ -119,5 +119,9 @@ impl Contract {
 
     pub fn get_curr_time(&self) -> u64 {
         return env::block_timestamp() / 1_000_000;
+    }
+
+    pub fn is_whitelist(&self, account_id: AccountId) -> bool {
+        return self.whitelist.contains_key(&account_id);
     }
 }
