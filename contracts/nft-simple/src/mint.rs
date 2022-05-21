@@ -16,16 +16,23 @@ impl Contract {
             return;
         }
         let caller = env::predecessor_account_id();
+        let deposit = env::attached_deposit();
         let curr_time = env::block_timestamp() / 1_000_000;
+
         const PRESALE_TIME: u64 = 1655136000000; // 13th June 2022 04:00PM UTC
         const PUBSALE_TIME: u64 = 1655139600000; // 13th June 2022 05:00PM UTC
+        const PRESALE_PRICE: u128 = 30_000_000_000_000_000_000_000_000; // 13th June 2022 05:00PM UTC
+        const PUBSALE_PRICE: u128 = 45_000_000_000_000_000_000_000_000; // 13th June 2022 05:00PM UTC
 
         if curr_time < PRESALE_TIME {
             return;
         } else if curr_time > PRESALE_TIME && curr_time < PUBSALE_TIME {
-            if !self.whitelist.contains_key(&caller) {
+            if !self.whitelist.contains_key(&caller) || deposit < PRESALE_PRICE {
                 return;
             }
+        }
+        if deposit < PUBSALE_PRICE {
+            return;
         }
 
         let mut final_token_id = format!("{}", my_token_id);
