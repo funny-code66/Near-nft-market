@@ -23,8 +23,7 @@ impl Contract {
         if curr_time < PRESALE_TIME {
             return;
         } else if curr_time > PRESALE_TIME && curr_time < PUBSALE_TIME {
-            let is_whitelist = self.whitelist.get(&caller).unwrap();
-            if !is_whitelist {
+            if !self.whitelist.contains_key(&caller) {
                 return;
             }
         }
@@ -115,6 +114,6 @@ impl Contract {
     pub fn remove_whitelist(&mut self) {
         self.assert_owner();
         let caller = env::predecessor_account_id();
-        self.whitelist.insert(&caller, &(false));
+        self.whitelist.remove(&caller);
     }
 }
