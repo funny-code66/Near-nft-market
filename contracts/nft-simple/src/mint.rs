@@ -116,4 +116,8 @@ impl Contract {
         let caller = env::predecessor_account_id();
         self.whitelist.remove(&caller);
     }
+
+    pub fn get_curr_time(&self) -> u64 {
+        return env::block_timestamp() / 1_000_000;
+    }
 }
